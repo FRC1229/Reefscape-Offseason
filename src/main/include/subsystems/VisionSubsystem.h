@@ -22,16 +22,8 @@ class VisionSubsystem : public frc2::SubsystemBase {
 
 
         void Periodic() override;
-    
-        double getTX();
-        // double getTY();
-        // double getDistance(double targetHeight);
-        std::vector<double> getPose();
-        std::vector<double> getRelativePose();
-        double getTagX();
-        double getTagY();
         void putShuffleboard();
-        frc::Pose2d GETPose();
+        frc::Pose2d getPose();
         std::map<int, frc::Pose2d> targetPoses;
 
         frc::Pose2d GetUpdatePose();
@@ -40,7 +32,6 @@ class VisionSubsystem : public frc2::SubsystemBase {
         photon::PhotonPipelineResult getResult();
         photon::PhotonTrackedTarget BestResult();
         photon::PhotonTrackedTarget ClosestTarget();
-
         frc::AprilTagFieldLayout layout = frc::LoadAprilTagLayoutField(frc::AprilTagField::k2025ReefscapeAndyMark);
 
         frc::Transform2d cameraToRobot = frc::Transform2d{

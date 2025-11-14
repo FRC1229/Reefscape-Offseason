@@ -29,7 +29,6 @@
  * Command will *not* work!
  */
 class AutoAlign
-
     : public frc2::CommandHelper<frc2::Command, AutoAlign> {
  public:
   /* You should consider using the more terse Command factories API instead
@@ -57,7 +56,7 @@ class AutoAlign
   
 
   double setPoint;
-  double error = 0.04;
+  double error = 0.02;
   frc::PIDController centerPid {1,0,0}; //1.4 , 0, 0 good teleop
 
   frc::PIDController alignPid {1,0,0};

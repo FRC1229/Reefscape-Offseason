@@ -19,26 +19,26 @@ void AutoLastAlign::Initialize() {}
 void AutoLastAlign::Execute() {
 
 
-    // frc::Pose2d targetPose = m_vision->targetPoses[m_vision->lastTag];
+    frc::Pose2d targetPose = m_vision->targetPoses[m_vision->lastTag];
 
-    // double Xspeed = centerPid.Calculate(m_drive->m_odometry.GetEstimatedPosition().X().value(), targetPose.X().value());
-    // double Yspeed = centerPid.Calculate(m_drive->m_odometry.GetEstimatedPosition().Y().value(), targetPose.Y().value());
-    // double rotationSpeed = rotationPid.Calculate(m_drive->m_odometry.GetEstimatedPosition().Rotation().Degrees().value(), targetPose.Rotation().Degrees().value());
+    double Xspeed = centerPid.Calculate(m_drive->m_odometry.GetEstimatedPosition().X().value(), targetPose.X().value());
+    double Yspeed = centerPid.Calculate(m_drive->m_odometry.GetEstimatedPosition().Y().value(), targetPose.Y().value());
+    double rotationSpeed = rotationPid.Calculate(m_drive->m_odometry.GetEstimatedPosition().Rotation().Degrees().value(), targetPose.Rotation().Degrees().value());
 
 
-    // // Xspeed = frc::ApplyDeadband(Xspeed,0.0,1.0);
-    // // Yspeed = frc::ApplyDeadband(Xspeed,0.0,1.0);
+    // Xspeed = frc::ApplyDeadband(Xspeed,0.0,1.0);
+    // Yspeed = frc::ApplyDeadband(Xspeed,0.0,1.0);
 
-    // double x = m_drive->m_odometry.GetEstimatedPosition().X().value();
-    // double y = m_drive->m_odometry.GetEstimatedPosition().Y().value();
+    double x = m_drive->m_odometry.GetEstimatedPosition().X().value();
+    double y = m_drive->m_odometry.GetEstimatedPosition().Y().value();
 
     
 
   
 
-    // m_drive->Drive(units::velocity::meters_per_second_t{Xspeed}, 
-    //                units::velocity::meters_per_second_t{Yspeed},
-    //                units::angular_velocity::radians_per_second_t{rotationSpeed}, false);
+    m_drive->Drive(units::velocity::meters_per_second_t{Xspeed}, 
+                   units::velocity::meters_per_second_t{Yspeed},
+                   units::angular_velocity::radians_per_second_t{rotationSpeed}, false);
 
 
 }

@@ -5,19 +5,25 @@
     "data": {
       "commands": [
         {
-          "type": "parallel",
+          "type": "named",
+          "data": {
+            "name": "coralTravel"
+          }
+        },
+        {
+          "type": "race",
           "data": {
             "commands": [
               {
-                "type": "path",
+                "type": "named",
                 "data": {
-                  "pathName": "Fwd to L4"
+                  "name": "Autoalign"
                 }
               },
               {
-                "type": "named",
+                "type": "wait",
                 "data": {
-                  "name": "coralTravel"
+                  "waitTime": 5.0
                 }
               }
             ]
@@ -30,28 +36,21 @@
           }
         },
         {
-          "type": "deadline",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "coralShootL4"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "ElevatorPosL4"
-                }
-              }
-            ]
+            "name": "coralShootL4"
           }
         },
         {
           "type": "named",
           "data": {
             "name": "coralTravel"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ElevatorPosHome"
           }
         }
       ]

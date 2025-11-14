@@ -117,7 +117,7 @@ void Robot::AutonomousInit() {
 void Robot::AutonomousPeriodic() {}
 
 void Robot::TeleopInit() {
-  m_container.m_drive.ZeroHeading();
+  // m_container.m_drive.m_gyro.SetYaw(units::degree_t(180));
   m_container.m_drive.ResetEncoders();
   m_container.m_drive.ResetOdometry(frc::Pose2d{0_m,0_m,frc::Rotation2d{0_deg}});
 
@@ -132,13 +132,14 @@ void Robot::TeleopInit() {
     m_autonomousCommand->Cancel();
   }
   m_container.m_drive.ZeroHeading();
+  m_container.m_drive.m_gyro.SetYaw(units::degree_t(180));
 }
 
 /**
  * This function is called periodically during operator control.
  */
 void Robot::TeleopPeriodic() {
-
+  // m_container.m_driverController.SetRumble(frc::GenericHID::RumbleType::kBothRumble,1);
   // frc::SmartDashboard::PutNumber("FL Desired Angle", m_container.m_drive.FrontLeft.angle.Radians().value());
   // frc::SmartDashboard::PutNumber("FL Desired Speed", m_container.m_drive.FrontLeft.speed.value());
   // frc::SmartDashboard::PutNumber("BL calc", m_container.m_drive.RearLeft.angle.Radians().value());
@@ -153,6 +154,13 @@ void Robot::TeleopPeriodic() {
   // frc::SmartDashboard::PutNumber("BRVel Encoder", m_container.m_drive.m_rearRight.GetState().speed.value());
   // frc::SmartDashboard::PutNumber("ppp", m_container.m_drive.ppp);
   // frc::SmartDashboard::PutNumber("increment", m_container.m_drive.increment);
+//   if(fabs(m_container.m_vision.getTagY()) > .25){
+//     m_container.m_driverController.SetRumble(frc::GenericHID::RumbleType::kBothRumble,0); 
+//   }
+//   else{
+//       m_container.m_driverController.SetRumble(frc::GenericHID::RumbleType::kBothRumble,0.5);
+
+//   }
 }
 
 /**

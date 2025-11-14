@@ -65,17 +65,17 @@ RobotContainer::RobotContainer(){
   // frc2::CommandPtr threeAndHalf = pathplanner::PathPlannerAuto("New Auto(4)").ToPtr();
   // frc2::CommandPtr sideNote = pathplanner::PathPlannerAuto("OneNoteSide").ToPtr();
 
-  m_chooser.AddOption("L4", "L4");
+  m_chooser.AddOption("Center L4", "L4");
   m_chooser.AddOption("processor L1", "Left Side L1");
   m_chooser.AddOption("not processor L1", "Right Side to L1");
-  m_chooser.AddOption("not double L1", "double L1");
-  m_chooser.AddOption("L1", "L1");
-  m_chooser.AddOption("AutoAlign Test", "AutoAlign Test");
-  m_chooser.AddOption("Algae Movements", "Algae Movements");
-  m_chooser.AddOption("ProcessorTaxi", "ProcessorTaxi");
+  // m_chooser.AddOption("not double L1", "double L1");
+  // m_chooser.AddOption("L1", "L1");
+  // m_chooser.AddOption("AutoAlign Test", "AutoAlign Test");
+  // m_chooser.AddOption("Algae Movements", "Algae Movements");
+  // m_chooser.AddOption("ProcessorTaxi", "ProcessorTaxi");
 
 
-  m_chooser.SetDefaultOption("L4", "L4");   
+  // m_chooser.SetDefaultOption("Center L4", "Center L4");   
   // m_chooser.AddOption("One Meter", "One meter");
 
 
@@ -110,14 +110,15 @@ RobotContainer::RobotContainer(){
   NamedCommands::registerCommand("pathFind", std::move(pathfindingCommand));
   NamedCommands::registerCommand("coralTravel",std::move(SetCoralPosition(&m_coral,5).ToPtr())); 
   NamedCommands::registerCommand("coralShootL4",std::move(SetCoralPosition(&m_coral,33).ToPtr()));
-  NamedCommands::registerCommand("ElevatorPosL4",std::move(SetElevatorPos(&m_elevator,0.905).ToPtr()));
+  NamedCommands::registerCommand("ElevatorPosL4",std::move(SetElevatorPos(&m_elevator,0.895).ToPtr()));
   NamedCommands::registerCommand("ElevatorPosL3",std::move(SetElevatorPos(&m_elevator,0.414).ToPtr()));
   NamedCommands::registerCommand("ElevatorPosHome",std::move(SetElevatorPos(&m_elevator,0.005).ToPtr()));
+  NamedCommands::registerCommand("ElevatorBottomAlgae",std::move(SetElevatorPos(&m_elevator,0.414).ToPtr()));
   NamedCommands::registerCommand("L1Shoot",std::move(AutoL1Command(&m_l1,0.5).ToPtr()));
   NamedCommands::registerCommand("L1Intake",std::move(AutoL1Command(&m_l1,0.25).ToPtr()));
   NamedCommands::registerCommand("L1Travel",std::move(AutoL1Command(&m_l1,0.25).ToPtr()));
   NamedCommands::registerCommand("Coral Intake", std::move(SetCoralPosition(&m_coral,22).ToPtr()));
-  NamedCommands::registerCommand("Autoalign", std::move(AutoAlign(&m_drive,&m_vision,&m_driverController).ToPtr()));
+  NamedCommands::registerCommand("Autoalign", std::move(AutoAlign(&m_drive, &m_vision, &m_driverController).ToPtr()));
   NamedCommands::registerCommand("pathFindtoIntakeInter", frc2::RunCommand(
     [this]{
     m_drive.pathFind(frc::Pose2d(16.44_m,1.02_m,126_deg));
@@ -267,7 +268,7 @@ void RobotContainer::ConfigureButtonBindings() {
   frc2::JoystickButton(&m_copilotController, 2).WhileTrue(SetElevatorPos(&m_elevator,0.367).ToPtr()); //Home
   frc2::JoystickButton(&m_copilotController, 1).WhileTrue(SetElevatorPos(&m_elevator,0).ToPtr()); // L3
   // frc2::JoystickButton(&m_copilotController, 3).WhileTrue(SetElevatorPos(&m_elevator,0.5).ToPtr()); // L2
-  frc2::JoystickButton(&m_copilotController, 4).WhileTrue(SetElevatorPos(&m_elevator,0.905).ToPtr()); // L4
+  frc2::JoystickButton(&m_copilotController, 4).WhileTrue(SetElevatorPos(&m_elevator,0.895).ToPtr()); // L4
 
   // rAlgae Posistion
   frc2::POVButton(&m_copilotController,0).WhileTrue(SetElevatorPos(&m_elevator,0.770).ToPtr());

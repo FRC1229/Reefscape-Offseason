@@ -23,6 +23,11 @@
 #include <math.h>
 #include <LimelightHelpers.h>
 #include <frc/smartdashboard/Field2d.h>
+#include <array>
+#include <frc/Timer.h>
+#include <networktables/NetworkTableInstance.h>
+#include <frc/DriverStation.h>
+#include "subsystems/DriveSubsystem.h"
 
 using namespace pathplanner;
 using namespace DriveConstants;
@@ -45,11 +50,15 @@ DriveSubsystem::DriveSubsystem()
           kRearRightDriveMotorID,       kRearRightTurningMotorID,
           kRearRightTurningEncoderID, true, false, true},
 
-      m_odometry{kDriveKinematics,
-                 m_gyro.GetRotation2d(),
-                 {m_frontLeft.GetPosition(), m_frontRight.GetPosition(),
-                  m_rearLeft.GetPosition(), m_rearRight.GetPosition()},
-                  frc::Pose2d{2_m,7_m,frc::Rotation2d{0_deg}}}
+    m_odometry{
+                  kDriveKinematics,
+                  m_gyro.GetRotation2d(),
+                  {m_frontLeft.GetPosition(), m_rearLeft.GetPosition(),
+                  m_frontRight.GetPosition(), m_rearRight.GetPosition()},
+                  frc::Pose2d{2_m, 7_m, frc::Rotation2d{0_deg}},
+                  stateStdDevs,
+                  visionStdDevs
+              }
 
       {
         pathplanner::RobotConfig config = pathplanner::RobotConfig::fromGUISettings();
@@ -60,7 +69,7 @@ DriveSubsystem::DriveSubsystem()
         [this](){ return getRobotRelativeSpeeds(); }, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
         [this](frc::ChassisSpeeds speeds){ Drive(speeds.vx,speeds.vy,speeds.omega,false); }, // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds
         std::make_shared<PPHolonomicDriveController>( // HolonomicPathFollowerConfig, this should likely live in your Constants class
-            PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
+            PIDConstants(2.5, 0.0, 0.0), // Translation PID constants
             PIDConstants(5.0, 0.0, 0.0) // Rotation PID constants
         ),
         config,
@@ -82,6 +91,9 @@ bool DriveSubsystem::Fieldflip(){
   return m_fieldflip.GetSelected();
 }
 
+
+
+
 frc::Rotation2d DriveSubsystem::getRotation2D(){
   double yaw = m_gyro.GetYaw().GetValue().value();
 
@@ -94,6 +106,81 @@ frc::Rotation2d DriveSubsystem::getRotation2D(){
   return frc::Rotation2d(units::degree_t(yaw));
 }
 
+void DriveSubsystem::AddPhotonVision() {
+    auto inst = nt::NetworkTableInstance::GetDefault();
+    auto table = inst.GetTable("photonvision")->GetSubTable("YourCameraName");  
+
+    if (!table) return;
+
+    // Alliance-aware botpose key
+    bool isRed =
+        frc::DriverStation::GetAlliance().value_or(frc::DriverStation::Alliance::kBlue)
+        == frc::DriverStation::Alliance::kRed;
+
+    std::string key = isRed ? "botpose_wpired" : "botpose_wpiblue";
+
+    // Check for target
+    bool hasTarget = table->GetNumber("hasTarget", 0.0) > 0.5;
+    if (!hasTarget) return;
+
+    // Read the botpose array from PhotonVision
+    std::vector<double> poseArray = table->GetNumberArray(key, {});
+
+    if (poseArray.size() < 7) {
+        // PhotonVision always outputs at least 7 elements
+        return;
+    }
+
+    // Convert PV botpose → frc::Pose2d
+    double x = poseArray[0];
+    double y = poseArray[1];
+    double rotDegrees = poseArray[5];
+
+    frc::Pose2d visionPose{
+        units::meter_t(x),
+        units::meter_t(y),
+        frc::Rotation2d(units::degree_t(rotDegrees))
+    };
+
+    // === Latency handling (PhotonVision) ===
+    double latencyMs = table->GetNumber("latencyMillis", 0.0); // PV total latency
+    double latencySec = latencyMs / 1000.0;
+
+    // Vision timestamp
+    double timestamp = frc::Timer::GetFPGATimestamp().value() - latencySec;
+
+    // Reject wild jumps (>3m)
+    double dist = m_odometry.GetEstimatedPosition()
+                    .Translation()
+                    .Distance(visionPose.Translation())
+                    .value();
+    if (dist > 3.0) return;
+
+    // === Adjust trust based on target size ===
+    double ta = table->GetNumber("targetArea", 0.0); // PV equivalent to Limelight "ta"
+
+    std::array<double, 3> measurementStdDevs = visionStdDevs;
+
+    if (ta > 0.0) {
+        double factor = std::clamp(1.0 - ta / 30.0, 0.3, 1.0);
+        for (double &s : measurementStdDevs) s *= factor;
+    }
+
+    // === Apply to pose estimator ===
+    m_odometry.AddVisionMeasurement(
+        visionPose,
+        units::time::second_t(timestamp),
+        measurementStdDevs
+    );
+
+    // Debug
+    frc::SmartDashboard::PutNumber("VisionX", x);
+    frc::SmartDashboard::PutNumber("VisionY", y);
+    frc::SmartDashboard::PutNumber("VisionYaw", rotDegrees);
+    frc::SmartDashboard::PutNumber("VisionLatency", latencySec);
+}
+
+
 void DriveSubsystem::Periodic() {
   // Implementation of subsystem periodic method goes here.
   m_odometry.Update(m_gyro.GetRotation2d(),
@@ -101,11 +188,13 @@ void DriveSubsystem::Periodic() {
                      m_frontRight.GetPosition(), m_rearRight.GetPosition()});
 
 
-  if(m_vision.seeTarget()){
-    for(auto tar : m_vision.getCameraRobotPoses()){
-      m_odometry.AddVisionMeasurement(tar, frc::Timer::GetFPGATimestamp());
-    }
-  }
+  // if(m_vision.seeTarget()){
+  //   for(auto tar : m_vision.getCameraRobotPoses()){
+  //     m_odometry.AddVisionMeasurement(tar, frc::Timer::GetFPGATimestamp());
+  //   }
+  // }
+
+  AddPhotonVision();
 
 
 
@@ -116,8 +205,8 @@ void DriveSubsystem::Periodic() {
   frc::SmartDashboard::PutNumber("POSEX", m_odometry.GetEstimatedPosition().X().value());
   frc::SmartDashboard::PutNumber("POSEY", m_odometry.GetEstimatedPosition().Y().value());
 
-  // frc::SmartDashboard::PutNumber("Vision X", m_vision.getCameraRobotPose().X().value());
-  // frc::SmartDashboard::PutNumber("Vision Y", m_vision.getCameraRobotPose().Y().value());
+  frc::SmartDashboard::PutNumber("Vision X", m_vision.getCameraRobotPose().X().value());
+  frc::SmartDashboard::PutNumber("Vision Y", m_vision.getCameraRobotPose().Y().value());
 
 
 
@@ -268,10 +357,10 @@ void DriveSubsystem::Drive(units::meters_per_second_t xSpeed,
   RearLeft =  bl;
   RearRight = br;
 
-  frc::SmartDashboard::PutNumber("Desired Vel", FrontLeft.speed.value());
-  // frc::SmartDashboard::PutNumber("Rot PID Out",rotCalc);
-  frc::SmartDashboard::PutNumber("rot rps", rot.value());
-  frc::SmartDashboard::PutNumber("Yaw", m_gyro.GetYaw().GetValue().value());
+  // frc::SmartDashboard::PutNumber("Desired Vel", FrontLeft.speed.value());
+  // // frc::SmartDashboard::PutNumber("Rot PID Out",rotCalc);
+  // frc::SmartDashboard::PutNumber("rot rps", rot.value());
+  // frc::SmartDashboard::PutNumber("Yaw", m_gyro.GetYaw().GetValue().value());
 
 }
 
@@ -297,22 +386,13 @@ void DriveSubsystem::DriveWithJoysticks(double xJoy, double yJoy, double rotJoy,
 }
 
 void DriveSubsystem::AutoAlign(double tx, double x, double y){
-  // x = x_speedLimiter.Calculate(frc::ApplyDeadband(x,0.05));
-  // y = y_speedLimiter.Calculate(frc::ApplyDeadband(y,0.05));
-  // const auto xSpeed = units::meters_per_second_t{x};
-  // const auto ySpeed = units::meters_per_second_t{y};
-  // if (m_vision.getID() == 1){
-    double rotCalc = rotatePID.Calculate(tx,0);
-    double xspeedCalc = speedxPID.Calculate(m_vision.getTagX(),0);
-    double yspeedCalc = speedyPID.Calculate(m_vision.getTagY(),-0.25);
-
-    // double yspeedCalc = speedyPID.Calculate(m_vision.getDistance(26), 24);
-    Drive(units::meters_per_second_t(frc::ApplyDeadband(yspeedCalc,0.1)),units::meters_per_second_t(frc::ApplyDeadband(-xspeedCalc,0.1)),units::radians_per_second_t{frc::ApplyDeadband(-rotCalc,0.075)},false);
-    std::cout<<yspeedCalc<<std::endl;
-  // }
-  // else{
-  //   // Drive(units::meters_per_second_t(0),units::meters_per_second_t(0),units::radians_per_second_t(3),false);
-  // }
+  x = x_speedLimiter.Calculate(frc::ApplyDeadband(x,0.05));
+  y = y_speedLimiter.Calculate(frc::ApplyDeadband(y,0.05));
+  const auto xSpeed = units::meters_per_second_t{x};
+  const auto ySpeed = units::meters_per_second_t{y};
+  double rotCalc = rotatePID.Calculate(tx,0);
+  Drive(xSpeed,ySpeed,units::radians_per_second_t{frc::ApplyDeadband(rotCalc,0.01)},true);
+  // std::cout<<"yipppe"<<std::endl;
 }
 
 void DriveSubsystem::TurnToAngle(double x, double y, double rot){
@@ -406,8 +486,6 @@ void DriveSubsystem::ResetOdometry(frc::Pose2d pose) {
        m_rearLeft.GetPosition(), m_rearRight.GetPosition()},
       pose);
 }
-
-
 // void DriveSubsystem::GyroStabilize(){
 //   gyroSetpoint = 180;
 // }

@@ -38,6 +38,9 @@ class DriveSubsystem : public frc2::SubsystemBase {
   SwerveModule m_frontRight;
   SwerveModule m_rearRight;
 
+  std::array<double, 3> stateStdDevs{0.05, 0.05, 0.05};   // x, y (m), theta (rad) - odometry uncertainty
+  std::array<double, 3> visionStdDevs{0.3, 0.3, 0.2};  // x, y (m), theta (rad) - vision uncertainty
+
   VisionSubsystem m_vision;
 
   frc::Field2d m_field;
@@ -130,23 +133,14 @@ class DriveSubsystem : public frc2::SubsystemBase {
   void Subtract();
   void Add();
   void AutoAlign(double tx, double x, double y);
-
-  frc::PIDController rotatePID{
-    0.071,0,0.0
-  };
-
-  frc::PIDController speedxPID{
-    1.2,0.11,0.0
-  };
-
-  frc::PIDController speedyPID{
-    0.6,0,0.0
-  };
-  
   double gyroSetpoint = 15;
+  void AddPhotonVision();
 
   frc::ChassisSpeeds getRobotRelativeSpeeds();
 
+  frc::PIDController rotatePID{
+    0.055,0,0.0
+  };
 
   units::meter_t kTrackWidth =
       0.5207_m;  // Distance between centers of right and left wheels on robot
